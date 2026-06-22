@@ -156,7 +156,10 @@
   .map-wrap{position:relative; width:100%; max-width:300px; margin:10px auto 6px;}
   .map-wrap svg{width:100%; display:block;}
   .land-shape{fill:var(--paper-deep); stroke:var(--ink); stroke-width:2;}
+  .region-highlight{fill:rgba(168,54,44,0.13); stroke:var(--stamp-red); stroke-width:1.5; stroke-dasharray:4 3;}
+  .region-label{font-family:'Noto Serif KR', serif; font-weight:700; font-size:13px; fill:var(--stamp-red); opacity:.9;}
   .pin-dim{fill:var(--line); opacity:.8;}
+  .pin-region{fill:var(--ochre); opacity:.95;}
   .pin-highlight{fill:var(--stamp-red); stroke:var(--paper); stroke-width:2;
     animation: pulse 1.4s ease-in-out infinite;}
   .pin-label{font-family:'Noto Serif KR', serif; font-weight:900; font-size:15px; fill:var(--ink);}
@@ -495,14 +498,39 @@ function buildKoreaMap(svgEl, highlightRegion, highlightName){
   land.setAttribute('d', KOREA_PATH);
   land.setAttribute('class','land-shape');
   svgEl.appendChild(land);
+
+  const regionData = DATA.find(r => r.region === highlightRegion);
+  if(regionData){
+    const xs = regionData.items.map(it => it.x);
+    const ys = regionData.items.map(it => it.y);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const spread = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    const r = Math.max(58, spread/2 + 38);
+    const blob = document.createElementNS(svgNS,'circle');
+    blob.setAttribute('cx', cx); blob.setAttribute('cy', cy); blob.setAttribute('r', r);
+    blob.setAttribute('class','region-highlight');
+    svgEl.appendChild(blob);
+
+    const labelY = Math.max(cy - r - 8, 16);
+    const regionLabel = document.createElementNS(svgNS,'text');
+    regionLabel.setAttribute('x', cx);
+    regionLabel.setAttribute('y', labelY);
+    regionLabel.setAttribute('text-anchor','middle');
+    regionLabel.setAttribute('class','region-label');
+    regionLabel.textContent = highlightRegion;
+    svgEl.appendChild(regionLabel);
+  }
+
   DATA.forEach(region=>{
     region.items.forEach(it=>{
       const isHL = region.region===highlightRegion && it.name===highlightName;
+      const inRegion = region.region===highlightRegion;
       const c = document.createElementNS(svgNS,'circle');
       c.setAttribute('cx', it.x);
       c.setAttribute('cy', it.y);
-      c.setAttribute('r', isHL ? 9 : 4);
-      c.setAttribute('class', isHL ? 'pin-highlight' : 'pin-dim');
+      c.setAttribute('r', isHL ? 9 : (inRegion ? 5 : 3));
+      c.setAttribute('class', isHL ? 'pin-highlight' : (inRegion ? 'pin-region' : 'pin-dim'));
       svgEl.appendChild(c);
       if(isHL){
         const label = document.createElementNS(svgNS,'text');
